@@ -1,4 +1,4 @@
-package com.github.immueggpain.randomserver;
+package com.github.immueggpain.javatool;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -6,17 +6,30 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.SecureRandom;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.github.immueggpain.randomserver.Launcher.ServerSettings;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
-public class RandomServer {
+@Command(description = "Server produce random data", name = "randsvr", mixinStandardHelpOptions = true)
+public class RandomServer implements Callable<Void> {
 
-	public void run(ServerSettings settings) throws Exception {
+	@Option(names = { "-p", "--server-port" }, description = "SVR PORT, ...")
+	public int server_port;
+
+	@Spec
+	CommandSpec spec;
+
+	@Override
+	public Void call() throws Exception {
+		spec.commandLine().usage(System.out);
 		ExecutorService executor = Executors.newCachedThreadPool();
-		try (ServerSocket ss = new ServerSocket(settings.server_port, 50, InetAddress.getByName("0.0.0.0"))) {
-			System.out.println("listened on port " + settings.server_port);
+		try (ServerSocket ss = new ServerSocket(server_port, 50, InetAddress.getByName("0.0.0.0"))) {
+			System.out.println("listened on port " + server_port);
 			while (true) {
 				Socket s = ss.accept();
 				executor.execute(() -> handleConn(s));
