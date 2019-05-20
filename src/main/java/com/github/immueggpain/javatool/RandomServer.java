@@ -27,7 +27,6 @@ public class RandomServer implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		spec.commandLine().usage(System.out);
 		ExecutorService executor = Executors.newCachedThreadPool();
 		try (ServerSocket ss = new ServerSocket(server_port, 50, InetAddress.getByName("0.0.0.0"))) {
 			System.out.println("listened on port " + server_port);
