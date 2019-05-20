@@ -15,10 +15,11 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
-@Command(description = "Server produce random data", name = "randsvr", mixinStandardHelpOptions = true)
+@Command(description = "Server which produces random data", name = "randsvr", mixinStandardHelpOptions = true,
+		version = Launcher.VERSTR)
 public class RandomServer implements Callable<Void> {
 
-	@Option(names = { "-p", "--server-port" }, description = "SVR PORT, ...")
+	@Option(names = { "-p", "--server-port" }, required = true, description = "server listening port")
 	public int server_port;
 
 	@Spec
