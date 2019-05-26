@@ -4,16 +4,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.Key;
 import java.util.concurrent.Callable;
 
 import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.lang3.ArrayUtils;
-
+import com.github.immueggpain.javatool.Util.ClientAsk;
+import com.github.immueggpain.javatool.Util.ServerReply;
 import com.google.gson.Gson;
 
 import picocli.CommandLine.Command;
@@ -53,18 +50,18 @@ public class ConnInfoServer implements Callable<Void> {
 			while (true) {
 				p.setData(recvBuf);
 				sclient_s.receive(p);
-				byte[] decrypted = decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+				byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
 				String clientAskStr = new String(decrypted, StandardCharsets.UTF_8);
 				ClientAsk clientAsk = gson.fromJson(clientAskStr, ClientAsk.class);
 				System.out.println(gson.toJson(clientAsk));
 
 				// making reply
-				ServerReply serverReply = new ServerReply();
+				ServerReply serverReply = new Util.ServerReply();
 				serverReply.address = p.getAddress().getHostAddress();
 				serverReply.port = p.getPort();
 				String serverReplyStr = gson.toJson(serverReply);
 				byte[] serverReplyBytes = serverReplyStr.getBytes(StandardCharsets.UTF_8);
-				byte[] serverReplyEncrypted = encrypt(encrypter, secretKey, serverReplyBytes, 0,
+				byte[] serverReplyEncrypted = Util.encrypt(encrypter, secretKey, serverReplyBytes, 0,
 						serverReplyBytes.length);
 
 				// send reply
@@ -72,33 +69,6 @@ public class ConnInfoServer implements Callable<Void> {
 				sclient_s.send(p);
 			}
 		}
-	}
-
-	public static class ServerReply {
-		public String address;
-		public int port;
-	}
-
-	public static class ClientAsk {
-		public String address;
-		public int port;
-	}
-
-	public static byte[] encrypt(Cipher encrypter, Key secretKey, byte[] input, int offset, int length)
-			throws GeneralSecurityException {
-		// we need init every time because we want random iv
-		encrypter.init(Cipher.ENCRYPT_MODE, secretKey);
-		byte[] iv = encrypter.getIV();
-		byte[] encrypedBytes = encrypter.doFinal(input, offset, length);
-		return ArrayUtils.addAll(iv, encrypedBytes);
-	}
-
-	public static byte[] decrypt(Cipher decrypter, Key secretKey, byte[] input, int offset, int length)
-			throws GeneralSecurityException {
-		GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, input, offset, 12);
-		decrypter.init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec);
-		byte[] decryptedBytes = decrypter.doFinal(input, offset + 12, length - 12);
-		return decryptedBytes;
 	}
 
 }
