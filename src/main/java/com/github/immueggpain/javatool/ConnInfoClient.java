@@ -2,6 +2,7 @@ package com.github.immueggpain.javatool;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 
@@ -18,6 +19,9 @@ import picocli.CommandLine.Option;
 @Command(description = "client to infosvr", name = "infoclt", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
 public class ConnInfoClient implements Callable<Void> {
+
+	@Option(names = { "-s", "--server-addr" }, required = true, description = "server address")
+	public String[] serverAddrs;
 
 	@Option(names = { "-p", "--server-port" }, required = true, description = "server listening port")
 	public int serverPort;
@@ -42,26 +46,31 @@ public class ConnInfoClient implements Callable<Void> {
 		// setup sockets
 		try (DatagramSocket cserver_s = new DatagramSocket()) {
 
-			// making ask
-			ClientAsk clientAsk = new ClientAsk();
-			clientAsk.address = cserver_s.getLocalAddress().getHostAddress();
-			clientAsk.port = cserver_s.getLocalPort();
-			String clientAskStr = gson.toJson(clientAsk);
-			byte[] clientAskBytes = clientAskStr.getBytes(StandardCharsets.UTF_8);
-			byte[] clientAskEncrypted = Util.encrypt(encrypter, secretKey, clientAskBytes, 0, clientAskBytes.length);
+			for (String serverAddr : serverAddrs) {
+				// making ask
+				ClientAsk clientAsk = new ClientAsk();
+				clientAsk.address = cserver_s.getLocalAddress().getHostAddress();
+				clientAsk.port = cserver_s.getLocalPort();
+				String clientAskStr = gson.toJson(clientAsk);
+				byte[] clientAskBytes = clientAskStr.getBytes(StandardCharsets.UTF_8);
+				byte[] clientAskEncrypted = Util.encrypt(encrypter, secretKey, clientAskBytes, 0,
+						clientAskBytes.length);
 
-			// send ask
-			DatagramPacket p = new DatagramPacket(clientAskEncrypted, clientAskEncrypted.length);
-			cserver_s.send(p);
+				// send ask
+				DatagramPacket p = new DatagramPacket(clientAskEncrypted, clientAskEncrypted.length);
+				p.setAddress(InetAddress.getByName(serverAddr));
+				p.setPort(serverPort);
+				cserver_s.send(p);
 
-			// recv reply
-			byte[] recvBuf = new byte[4096];
-			p.setData(recvBuf);
-			cserver_s.receive(p);
-			byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-			String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-			ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-			System.out.println(gson.toJson(serverReply));
+				// recv reply
+				byte[] recvBuf = new byte[4096];
+				p.setData(recvBuf);
+				cserver_s.receive(p);
+				byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+				String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+				ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+				System.out.println(gson.toJson(serverReply));
+			}
 		}
 
 		return null;
