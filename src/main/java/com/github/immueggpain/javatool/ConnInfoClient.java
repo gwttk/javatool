@@ -64,58 +64,30 @@ public class ConnInfoClient implements Callable<Void> {
 			// recv naked
 			recvUdp(cserver_s);
 
-			for (String serverAddr : serverAddrs) {
-				// making ask
+			// send punch
+			{
 				ClientAsk clientAsk = new ClientAsk();
+				clientAsk.id = "punch";
 				clientAsk.address = cserver_s.getLocalAddress().getHostAddress();
 				clientAsk.port = cserver_s.getLocalPort();
-				String clientAskStr = gson.toJson(clientAsk);
-				byte[] clientAskBytes = clientAskStr.getBytes(StandardCharsets.UTF_8);
-				byte[] clientAskEncrypted = Util.encrypt(encrypter, secretKey, clientAskBytes, 0,
-						clientAskBytes.length);
-
-				// send ask
-				DatagramPacket p = new DatagramPacket(clientAskEncrypted, clientAskEncrypted.length);
-				p.setAddress(InetAddress.getByName(serverAddr));
-				p.setPort(serverPort);
-				cserver_s.send(p);
-
-				// recv same ip&port, same ip different port, different ip
-
-				{
-					// recv reply 1
-					byte[] recvBuf = new byte[4096];
-					p.setData(recvBuf);
-					cserver_s.receive(p);
-					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-					System.out.println(gson.toJson(serverReply));
-				}
-
-				{
-					// recv reply 2
-					byte[] recvBuf = new byte[4096];
-					p.setData(recvBuf);
-					cserver_s.receive(p);
-					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-					System.out.println(gson.toJson(serverReply));
-				}
-
-				{
-					// recv reply 2
-					byte[] recvBuf = new byte[4096];
-					p.setData(recvBuf);
-					cserver_s.receive(p);
-					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-					System.out.println(gson.toJson(serverReply));
-				}
+				sendUdp(clientAsk, cserver_s, serverAddrs[0], serverPort);
 			}
 
+			// send ctrl to another server to send to punched
+			{
+				ClientAsk clientAsk = new ClientAsk();
+				clientAsk.id = "please send to";
+				clientAsk.address = "";
+				clientAsk.port = cserver_s.getLocalPort();
+				sendUdp(clientAsk, cserver_s_ctrl, serverAddrs[1], serverPort);
+			}
+
+			// recv same ip different port
+			// recv different ip
+			// recv same ip same port
+			recvUdp(cserver_s);
+			recvUdp(cserver_s);
+			recvUdp(cserver_s);
 		}
 
 		return null;

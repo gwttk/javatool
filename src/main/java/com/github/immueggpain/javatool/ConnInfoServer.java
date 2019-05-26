@@ -57,6 +57,7 @@ public class ConnInfoServer implements Callable<Void> {
 
 				// making reply
 				ServerReply serverReply = new Util.ServerReply();
+				serverReply.id = "re: " + clientAsk.id;
 				serverReply.address = p.getAddress().getHostAddress();
 				serverReply.port = p.getPort();
 				String serverReplyStr = gson.toJson(serverReply);
@@ -65,6 +66,8 @@ public class ConnInfoServer implements Callable<Void> {
 						serverReplyBytes.length);
 
 				// send reply
+				if (clientAsk.id.equals("please send to"))
+					p.setPort(clientAsk.port);
 				p.setData(serverReplyEncrypted);
 				sclient_s.send(p);
 			}
