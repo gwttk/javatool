@@ -1,9 +1,11 @@
 package com.github.immueggpain.javatool;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.Callable;
 
 import javax.crypto.Cipher;
@@ -30,6 +32,9 @@ public class ConnInfoClient implements Callable<Void> {
 	public String pswdStr;
 
 	public static final Gson gson = new Gson();
+	private Cipher encrypter;
+	private Cipher decrypter;
+	private SecretKeySpec secretKey;
 
 	@Override
 	public Void call() throws Exception {
@@ -37,14 +42,27 @@ public class ConnInfoClient implements Callable<Void> {
 		byte[] bytes = pswdStr.getBytes(StandardCharsets.UTF_8);
 		byte[] byteKey = new byte[16];
 		System.arraycopy(bytes, 0, byteKey, 0, Math.min(byteKey.length, bytes.length));
-		SecretKeySpec secretKey = new SecretKeySpec(byteKey, "AES");
+		secretKey = new SecretKeySpec(byteKey, "AES");
 		// we use 2 ciphers because we want to support encrypt/decrypt full-duplex
 		String transformation = "AES/GCM/PKCS5Padding";
-		Cipher encrypter = Cipher.getInstance(transformation);
-		Cipher decrypter = Cipher.getInstance(transformation);
+		encrypter = Cipher.getInstance(transformation);
+		decrypter = Cipher.getInstance(transformation);
 
 		// setup sockets
-		try (DatagramSocket cserver_s = new DatagramSocket()) {
+		try (DatagramSocket cserver_s = new DatagramSocket(); DatagramSocket cserver_s_ctrl = new DatagramSocket();) {
+			cserver_s.setSoTimeout(1000 * 10);
+
+			// send ctrl please send to
+			{
+				ClientAsk clientAsk = new ClientAsk();
+				clientAsk.id = "please send to";
+				clientAsk.address = "";
+				clientAsk.port = cserver_s.getLocalPort();
+				sendUdp(clientAsk, cserver_s_ctrl, serverAddrs[0], serverPort);
+			}
+
+			// recv naked
+			recvUdp(cserver_s);
 
 			for (String serverAddr : serverAddrs) {
 				// making ask
@@ -62,18 +80,66 @@ public class ConnInfoClient implements Callable<Void> {
 				p.setPort(serverPort);
 				cserver_s.send(p);
 
-				// recv reply
-				byte[] recvBuf = new byte[4096];
-				p.setData(recvBuf);
-				cserver_s.receive(p);
-				byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-				String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-				ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-				System.out.println(gson.toJson(serverReply));
+				// recv same ip&port, same ip different port, different ip
+
+				{
+					// recv reply 1
+					byte[] recvBuf = new byte[4096];
+					p.setData(recvBuf);
+					cserver_s.receive(p);
+					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+					System.out.println(gson.toJson(serverReply));
+				}
+
+				{
+					// recv reply 2
+					byte[] recvBuf = new byte[4096];
+					p.setData(recvBuf);
+					cserver_s.receive(p);
+					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+					System.out.println(gson.toJson(serverReply));
+				}
+
+				{
+					// recv reply 2
+					byte[] recvBuf = new byte[4096];
+					p.setData(recvBuf);
+					cserver_s.receive(p);
+					byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+					String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+					ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+					System.out.println(gson.toJson(serverReply));
+				}
 			}
+
 		}
 
 		return null;
+	}
+
+	private void sendUdp(Object obj, DatagramSocket sender, String addr, int port)
+			throws GeneralSecurityException, IOException {
+		String clientAskStr = gson.toJson(obj);
+		byte[] clientAskBytes = clientAskStr.getBytes(StandardCharsets.UTF_8);
+		byte[] clientAskEncrypted = Util.encrypt(encrypter, secretKey, clientAskBytes, 0, clientAskBytes.length);
+		DatagramPacket p = new DatagramPacket(clientAskEncrypted, clientAskEncrypted.length);
+		p.setAddress(InetAddress.getByName(addr));
+		p.setPort(port);
+		sender.send(p);
+	}
+
+	private void recvUdp(DatagramSocket receiver) throws IOException, GeneralSecurityException {
+		byte[] recvBuf = new byte[4096];
+		DatagramPacket p = new DatagramPacket(recvBuf, recvBuf.length);
+		receiver.receive(p);
+		byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+		String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+		ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+		System.out.println(gson.toJson(serverReply));
 	}
 
 }
