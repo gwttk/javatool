@@ -42,7 +42,8 @@ public class ConnInfoServer implements Callable<Void> {
 
 		// setup sockets
 		InetAddress allbind_addr = InetAddress.getByName("0.0.0.0");
-		try (DatagramSocket sclient_s = new DatagramSocket(serverPort, allbind_addr)) {
+		try (DatagramSocket sclient_s = new DatagramSocket(serverPort, allbind_addr);
+				DatagramSocket sclient_s2 = new DatagramSocket()) {
 
 			// recv packets and reply
 			byte[] recvBuf = new byte[4096];
@@ -66,9 +67,12 @@ public class ConnInfoServer implements Callable<Void> {
 						serverReplyBytes.length);
 
 				// send reply
-				if (clientAsk.id.equals("please send to"))
-					p.setPort(clientAsk.port);
 				p.setData(serverReplyEncrypted);
+				if (clientAsk.id.equals("please send to")) {
+					p.setPort(clientAsk.port);
+				} else {
+					sclient_s2.send(p);
+				}
 				sclient_s.send(p);
 			}
 		}
