@@ -11,7 +11,7 @@ import picocli.CommandLine.Spec;
 public class Template implements Callable<Void> {
 
 	@Option(names = { "-p", "--server-port" }, required = true, description = "server listening port")
-	public int server_port;
+	public int serverPort;
 
 	@Spec
 	CommandSpec spec;
