@@ -75,6 +75,11 @@ public class ConnInfoClient implements Callable<Void> {
 				sendUdp(clientAsk, cserver_s, serverAddrs[0], serverPort);
 			}
 
+			// recv same ip different port
+			// recv same ip same port
+			recvUdp(cserver_s);
+			recvUdp(cserver_s);
+
 			// send ctrl to another server to send to punched
 			{
 				ClientAsk clientAsk = new ClientAsk();
@@ -84,11 +89,7 @@ public class ConnInfoClient implements Callable<Void> {
 				sendUdp(clientAsk, cserver_s_ctrl, serverAddrs[1], serverPort);
 			}
 
-			// recv same ip different port
 			// recv different ip
-			// recv same ip same port
-			recvUdp(cserver_s);
-			recvUdp(cserver_s);
 			recvUdp(cserver_s);
 		}
 
@@ -115,7 +116,7 @@ public class ConnInfoClient implements Callable<Void> {
 			String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
 			ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
 			outerPort = serverReply.port;
-			System.out.println(gson.toJson(serverReply));
+			System.out.println("from " + p.getSocketAddress() + " " + gson.toJson(serverReply));
 		} catch (SocketTimeoutException e) {
 			System.out.println("recv timed out");
 		}
