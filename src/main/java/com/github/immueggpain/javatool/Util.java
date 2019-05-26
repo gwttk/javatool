@@ -13,11 +13,13 @@ public class Util {
 	public static class ServerReply {
 		public String address;
 		public int port;
+		public String id;
 	}
 
 	public static class ClientAsk {
 		public String address;
 		public int port;
+		public String id;
 	}
 
 	public static byte[] encrypt(Cipher encrypter, Key secretKey, byte[] input, int offset, int length)
