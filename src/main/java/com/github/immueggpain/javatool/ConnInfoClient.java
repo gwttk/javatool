@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.Callable;
@@ -14,6 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.github.immueggpain.javatool.Util.ClientAsk;
 import com.github.immueggpain.javatool.Util.ServerReply;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -105,13 +107,17 @@ public class ConnInfoClient implements Callable<Void> {
 	}
 
 	private void recvUdp(DatagramSocket receiver) throws IOException, GeneralSecurityException {
-		byte[] recvBuf = new byte[4096];
-		DatagramPacket p = new DatagramPacket(recvBuf, recvBuf.length);
-		receiver.receive(p);
-		byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
-		String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
-		ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
-		System.out.println(gson.toJson(serverReply));
+		try {
+			byte[] recvBuf = new byte[4096];
+			DatagramPacket p = new DatagramPacket(recvBuf, recvBuf.length);
+			receiver.receive(p);
+			byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
+			String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
+			ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+			System.out.println(gson.toJson(serverReply));
+		} catch (SocketTimeoutException e) {
+			System.out.println("recv timed out");
+		}
 	}
 
 }
