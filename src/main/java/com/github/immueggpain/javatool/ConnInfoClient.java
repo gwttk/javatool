@@ -15,8 +15,6 @@ import javax.crypto.spec.SecretKeySpec;
 import com.github.immueggpain.javatool.Util.ClientAsk;
 import com.github.immueggpain.javatool.Util.ServerReply;
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -37,6 +35,8 @@ public class ConnInfoClient implements Callable<Void> {
 	private Cipher encrypter;
 	private Cipher decrypter;
 	private SecretKeySpec secretKey;
+
+	private int outerPort;
 
 	@Override
 	public Void call() throws Exception {
@@ -80,7 +80,7 @@ public class ConnInfoClient implements Callable<Void> {
 				ClientAsk clientAsk = new ClientAsk();
 				clientAsk.id = "please send to";
 				clientAsk.address = "";
-				clientAsk.port = cserver_s.getLocalPort();
+				clientAsk.port = outerPort;
 				sendUdp(clientAsk, cserver_s_ctrl, serverAddrs[1], serverPort);
 			}
 
@@ -114,6 +114,7 @@ public class ConnInfoClient implements Callable<Void> {
 			byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
 			String serverReplyStr = new String(decrypted, StandardCharsets.UTF_8);
 			ServerReply serverReply = gson.fromJson(serverReplyStr, ServerReply.class);
+			outerPort = serverReply.port;
 			System.out.println(gson.toJson(serverReply));
 		} catch (SocketTimeoutException e) {
 			System.out.println("recv timed out");
