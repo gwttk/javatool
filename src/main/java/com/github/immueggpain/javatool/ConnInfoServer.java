@@ -54,7 +54,7 @@ public class ConnInfoServer implements Callable<Void> {
 				byte[] decrypted = Util.decrypt(decrypter, secretKey, p.getData(), p.getOffset(), p.getLength());
 				String clientAskStr = new String(decrypted, StandardCharsets.UTF_8);
 				ClientAsk clientAsk = gson.fromJson(clientAskStr, ClientAsk.class);
-				System.out.println(gson.toJson(clientAsk));
+				System.out.println("from " + p.getSocketAddress() + " " + gson.toJson(clientAsk));
 
 				// making reply
 				ServerReply serverReply = new Util.ServerReply();
@@ -72,8 +72,12 @@ public class ConnInfoServer implements Callable<Void> {
 					p.setPort(clientAsk.port);
 				} else {
 					sclient_s2.send(p);
+					System.out.println(
+							sclient_s2.getLocalSocketAddress() + " to " + p.getSocketAddress() + " " + serverReplyStr);
 				}
 				sclient_s.send(p);
+				System.out.println(
+						sclient_s.getLocalSocketAddress() + " to " + p.getSocketAddress() + " " + serverReplyStr);
 			}
 		}
 	}
