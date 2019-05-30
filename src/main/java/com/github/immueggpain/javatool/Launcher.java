@@ -7,8 +7,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.HelpCommand;
 
 @Command(description = "Prints the checksum (MD5 by default) of a file to STDOUT.", name = "javatool",
-		mixinStandardHelpOptions = true, version = Launcher.VERSTR,
-		subcommands = { HelpCommand.class, RandomServer.class, ConnInfoServer.class, ConnInfoClient.class })
+		mixinStandardHelpOptions = true, version = Launcher.VERSTR, subcommands = { HelpCommand.class,
+				RandomServer.class, ConnInfoServer.class, ConnInfoClient.class, Chatter.class, UdpSend.class })
 public class Launcher implements Callable<Void> {
 
 	public static final String VERSTR = "1.0.0";
