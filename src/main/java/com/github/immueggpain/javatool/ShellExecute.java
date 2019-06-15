@@ -10,7 +10,8 @@ import com.sun.jna.platform.win32.WinUser;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(description = "ShellExecute open a file on windows", name = "shellexec", mixinStandardHelpOptions = true, version = Launcher.VERSTR)
+@Command(description = "ShellExecute open a file on windows", name = "shellexec", mixinStandardHelpOptions = true,
+		version = Launcher.VERSTR)
 public class ShellExecute implements Callable<Void> {
 
 	@Option(names = { "-f", "--file" }, required = true, description = "file to open")
@@ -26,8 +27,8 @@ public class ShellExecute implements Callable<Void> {
 		if (r.longValue() == 31) {
 			r = Shell32.INSTANCE.ShellExecute(null, "openas", file.toString(), null, file.getParent().toString(),
 					WinUser.SW_SHOWNORMAL);
+			System.out.println(r);
 		}
-		System.out.println(r);
 		return null;
 	}
 
