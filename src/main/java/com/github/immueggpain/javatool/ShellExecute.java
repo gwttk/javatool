@@ -20,14 +20,13 @@ public class ShellExecute implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		System.out.println("opening " + file);
-		System.out.println(Shell32.INSTANCE);
 		INT_PTR r = Shell32.INSTANCE.ShellExecute(null, null, file.toString(), null, file.getParent().toString(),
 				WinUser.SW_SHOWNORMAL);
-		System.out.println(r);
+		System.out.println("first attempt result: " + r);
 		if (r.longValue() == 31) {
 			r = Shell32.INSTANCE.ShellExecute(null, "openas", file.toString(), null, file.getParent().toString(),
 					WinUser.SW_SHOWNORMAL);
-			System.out.println(r);
+			System.out.println("second attempt(OpenAs) result: " + r);
 		}
 		return null;
 	}
