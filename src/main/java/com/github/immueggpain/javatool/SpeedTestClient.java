@@ -2,7 +2,11 @@ package com.github.immueggpain.javatool;
 
 import java.io.DataOutputStream;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Proxy.Type;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.math3.util.Precision;
@@ -22,9 +26,15 @@ public class SpeedTestClient implements Callable<Void> {
 	@Option(names = { "-s", "--data-size" }, required = true, description = "size of data to download in bytes")
 	public long data_size;
 
+	@Option(names = { "-x", "--proxy-port" }, required = true, description = "socks proxy's port")
+	public int proxy_port;
+
 	@Override
 	public Void call() throws Exception {
-		try (Socket s = new Socket(server_host, server_port)) {
+		SocketAddress proxyAddr = new InetSocketAddress("127.0.0.1", proxy_port);
+		Proxy proxy = new Proxy(Type.SOCKS, proxyAddr);
+		try (Socket s = new Socket(proxy)) {
+			s.connect(new InetSocketAddress(server_host, server_port));
 			System.out.println(String.format("connected to %s", s.getRemoteSocketAddress()));
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
 			InputStream is = s.getInputStream();
