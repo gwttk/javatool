@@ -35,12 +35,13 @@ public class SpeedTestServer implements Callable<Void> {
 
 	private void handleConn(Socket s) {
 		try {
-			System.out.println(String.format("%s connected", s.getInetAddress()));
+			System.out.println(String.format("%s connected", s.getRemoteSocketAddress()));
 			SecureRandom rand = new SecureRandom();
 			OutputStream os = s.getOutputStream();
 			DataInputStream is = new DataInputStream(s.getInputStream());
 			// client says how many random bytes will be sent
 			long bytesLeft = is.readLong();
+			System.out.println(String.format("request data size: %s", SpeedTestClient.formatBytes(bytesLeft)));
 			byte[] randomBytes = new byte[1024 * 32];
 			while (bytesLeft > 0) {
 				rand.nextBytes(randomBytes);
