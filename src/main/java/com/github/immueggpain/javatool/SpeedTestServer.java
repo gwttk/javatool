@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.SecureRandom;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,7 +36,8 @@ public class SpeedTestServer implements Callable<Void> {
 	private void handleConn(Socket s) {
 		try {
 			System.out.println(String.format("%s connected", s.getRemoteSocketAddress()));
-			SecureRandom rand = new SecureRandom();
+			Random rand = new Random();
+			// this is random enough, using time
 			OutputStream os = s.getOutputStream();
 			DataInputStream is = new DataInputStream(s.getInputStream());
 			// client says how many random bytes will be sent
