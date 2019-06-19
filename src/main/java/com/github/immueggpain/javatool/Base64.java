@@ -16,7 +16,7 @@ public class Base64 implements Callable<Void> {
 	@Option(names = { "-o", "--output" }, required = true, description = "output file")
 	public Path outputFile;
 
-	@Option(names = { "-m", "--mode" }, required = true, description = "encode/decode mode")
+	@Option(names = { "-m", "--mode" }, required = true, description = "Valid values: ${COMPLETION-CANDIDATES}")
 	public Mode mode;
 
 	public static enum Mode {
@@ -34,7 +34,7 @@ public class Base64 implements Callable<Void> {
 			byte[] out = org.apache.commons.codec.binary.Base64.decodeBase64(in);
 			Files.write(outputFile, out);
 		} else {
-			System.err.println("unknown mode");
+			throw new Exception("impossible");
 		}
 		return null;
 	}
