@@ -36,7 +36,7 @@ public class HttpPost implements Callable<Void> {
 				url.getPort() == -1 ? url.getDefaultPort() : url.getPort());
 		conn.bind(s);
 		HttpEntityEnclosingRequest request = new BasicHttpEntityEnclosingRequest("POST", url.getPath());
-		StringEntity entity = new StringEntity(body);
+		StringEntity entity = new StringEntity(body.replace("\\n", "\n"));
 		request.setEntity(entity);
 		request.setHeader("Host", url.getHost());
 		request.setHeader("Content-Length", "" + entity.getContentLength());
