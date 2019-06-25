@@ -17,7 +17,7 @@ import picocli.CommandLine.Option;
 
 @Command(description = "Send an http request", name = "http", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
-public class HttpHead implements Callable<Void> {
+public class HttpSend implements Callable<Void> {
 
 	@Option(names = { "-u", "--url" }, required = true, description = "HTTP URL")
 	public String urlStr;
