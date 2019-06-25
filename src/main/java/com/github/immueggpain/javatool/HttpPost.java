@@ -25,8 +25,11 @@ public class HttpPost implements Callable<Void> {
 	@Option(names = { "-u", "--url" }, required = true, description = "post URL")
 	public String urlStr;
 
-	@Option(names = { "-b", "--body" }, required = true, description = "post URL")
+	@Option(names = { "-b", "--body" }, required = true, description = "post body")
 	public String body;
+
+	@Option(names = { "-e", "--accept-encoding" }, required = false, description = "Accept-Encoding header value")
+	public String acceptEncoding;
 
 	@Override
 	public Void call() throws Exception {
@@ -40,17 +43,23 @@ public class HttpPost implements Callable<Void> {
 		request.setEntity(entity);
 		request.setHeader("Host", url.getHost());
 		request.setHeader("Content-Length", "" + entity.getContentLength());
-		request.setHeader("Accept-Encoding", "gzip");
+		if (acceptEncoding != null)
+			request.setHeader("Accept-Encoding", acceptEncoding);
+
+		long tStart = System.currentTimeMillis();
 		conn.sendRequestHeader(request);
 		conn.sendRequestEntity(request);
+		conn.flush();
 		HttpResponse response = conn.receiveResponseHeader();
 		conn.receiveResponseEntity(response);
+		HttpEntity responseEntity = response.getEntity();
+		byte[] buf = IOUtils.toByteArray(responseEntity.getContent());
+		long tEnd = System.currentTimeMillis();
 
+		System.out.println("cost time(ms): " + (tEnd - tStart));
 		for (Header header : response.getAllHeaders()) {
 			System.out.println(header);
 		}
-		HttpEntity responseEntity = response.getEntity();
-		byte[] buf = IOUtils.toByteArray(responseEntity.getContent());
 		System.out.println("response body length: " + buf.length);
 
 		// IOUtils.copy(response.getEntity().getContent(), System.out);
