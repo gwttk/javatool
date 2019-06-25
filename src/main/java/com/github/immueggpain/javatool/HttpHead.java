@@ -15,12 +15,15 @@ import org.apache.http.message.BasicHttpRequest;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(description = "Send an http post request", name = "hhead", mixinStandardHelpOptions = true,
+@Command(description = "Send an http request", name = "http", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
 public class HttpHead implements Callable<Void> {
 
-	@Option(names = { "-u", "--url" }, required = true, description = "post URL")
+	@Option(names = { "-u", "--url" }, required = true, description = "HTTP URL")
 	public String urlStr;
+
+	@Option(names = { "-m", "--method" }, required = true, description = "HTTP Method")
+	public String method;
 
 	@Override
 	public Void call() throws Exception {
@@ -30,7 +33,7 @@ public class HttpHead implements Callable<Void> {
 		Socket s = new Socket("127.0.0.1", 1082);
 		s.setTcpNoDelay(true);
 		conn.bind(s);
-		BasicHttpRequest request = new BasicHttpRequest("HEAD", urlStr, HttpVersion.HTTP_1_1);
+		BasicHttpRequest request = new BasicHttpRequest(method.toUpperCase(), urlStr, HttpVersion.HTTP_1_1);
 		request.setHeader("Host", url.getAuthority());
 		conn.sendRequestHeader(request);
 		conn.flush();
