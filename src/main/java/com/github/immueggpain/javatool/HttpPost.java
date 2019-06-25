@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -39,7 +40,9 @@ public class HttpPost implements Callable<Void> {
 				url.getPort() == -1 ? url.getDefaultPort() : url.getPort());
 		conn.bind(s);
 		HttpEntityEnclosingRequest request = new BasicHttpEntityEnclosingRequest("POST", url.getPath());
-		StringEntity entity = new StringEntity(body.replace("\\n", "\n"));
+		String entityStr = body.replace("\\n", "\n");
+		StringEntity entity = new StringEntity(entityStr);
+		System.out.println("body: " + entityStr);
 		request.setEntity(entity);
 		request.setHeader("Host", url.getHost());
 		request.setHeader("Content-Length", "" + entity.getContentLength());
@@ -53,7 +56,11 @@ public class HttpPost implements Callable<Void> {
 		HttpResponse response = conn.receiveResponseHeader();
 		conn.receiveResponseEntity(response);
 		HttpEntity responseEntity = response.getEntity();
-		byte[] buf = IOUtils.toByteArray(responseEntity.getContent());
+		byte[] buf;
+		try (final ByteArrayOutputStream output = new ByteArrayOutputStream(1024 * 1024 * 10)) {
+			IOUtils.copy(responseEntity.getContent(), output);
+			buf = output.toByteArray();
+		}
 		long tEnd = System.currentTimeMillis();
 
 		System.out.println("cost time(ms): " + (tEnd - tStart));
