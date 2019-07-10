@@ -84,7 +84,7 @@ public class ShareFile implements Callable<Void> {
 	}
 
 	public enum WirePktType {
-		LIST, FILEINFO, FILECONTENT, DONE
+		LIST, FILEINFO, FILECONTENT, DONE, CLOSESERVER
 	}
 
 	private void getFiles() throws IOException {
@@ -147,6 +147,7 @@ public class ShareFile implements Callable<Void> {
 		}
 
 		// done
+		System.out.println("sync done");
 		WirePkt done = new WirePkt();
 		done.type = WirePktType.DONE;
 		os.writeUTF(gson.toJson(done));
@@ -160,7 +161,7 @@ public class ShareFile implements Callable<Void> {
 			Socket s = ss.accept();
 			DataInputStream is = new DataInputStream(s.getInputStream());
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
-			while (true) {
+			recvLoop: while (true) {
 				String queryJson;
 				try {
 					queryJson = is.readUTF();
@@ -198,6 +199,13 @@ public class ShareFile implements Callable<Void> {
 					break;
 
 				case DONE:
+					// break recv loop, close conn
+					System.out.println("a client is done");
+					break recvLoop;
+
+				case CLOSESERVER:
+					// break accept loop, close conn, close listen socket
+					s.close();
 					break acceptLoop;
 
 				default:
