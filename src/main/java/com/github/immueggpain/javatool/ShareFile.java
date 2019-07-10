@@ -1,10 +1,12 @@
 package com.github.immueggpain.javatool;
 
 import java.util.concurrent.Callable;
+
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(description = "Send files between PCs and phones", name = "randsvr", mixinStandardHelpOptions = true,
+@Command(description = "Send files between PCs and phones", name = "sync", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
 public class ShareFile implements Callable<Void> {
 
@@ -14,11 +16,16 @@ public class ShareFile implements Callable<Void> {
 	@Option(names = { "-w", "--password" }, required = true, description = "password")
 	public String password;
 
-	@Option(names = { "-f", "--from" }, required = true, description = "sync from a file or dir")
-	public String fromPath;
+	@ArgGroup(exclusive = true, multiplicity = "1")
+	FromTo fromto;
 
-	@Option(names = { "-t", "--to" }, required = true, description = "sync to a file or dir")
-	public String toPath;
+	static class FromTo {
+		@Option(names = { "-f", "--from" }, required = true, description = "sync from a file or dir")
+		public String fromPath;
+
+		@Option(names = { "-t", "--to" }, required = true, description = "sync to a file or dir")
+		public String toPath;
+	}
 
 	@Override
 	public Void call() throws Exception {
