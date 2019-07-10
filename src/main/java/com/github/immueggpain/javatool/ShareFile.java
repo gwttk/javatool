@@ -3,6 +3,7 @@ package com.github.immueggpain.javatool;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
@@ -16,6 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.google.gson.Gson;
@@ -66,10 +68,14 @@ public class ShareFile implements Callable<Void> {
 	}
 
 	private static class WirePkt {
-		public long binLength;
+		public long binLength = 0;
 		public WirePktType type;
 
 		public List<String> fileList;
+
+		public String queryPath;
+		public String fileMd5;
+		public long fileSize;
 	}
 
 	public enum WirePktType {
@@ -89,20 +95,32 @@ public class ShareFile implements Callable<Void> {
 			String queryJson = is.readUTF();
 			WirePkt query = gson.fromJson(queryJson, WirePkt.class);
 			IOUtils.toByteArray(is, query.binLength); // currently no use of the bin data
+			WirePkt reply = new WirePkt();
+			Path queryFile;
 			switch (query.type) {
 			case LIST:
-				WirePkt reply = new WirePkt();
 				reply.type = WirePktType.LIST;
 				reply.fileList = listFiles(fromto.fromFile);
 				os.writeUTF(gson.toJson(reply));
 				break;
 
 			case FILEINFO:
-
+				reply.type = WirePktType.FILEINFO;
+				queryFile = fromto.fromFile.resolve(query.queryPath);
+				reply.fileMd5 = fileMd5(queryFile);
+				reply.fileSize = fileSize(queryFile);
+				os.writeUTF(gson.toJson(reply));
 				break;
 
 			case FILECONTENT:
-
+				reply.type = WirePktType.FILECONTENT;
+				queryFile = fromto.fromFile.resolve(query.queryPath);
+				reply.binLength = fileSize(queryFile);
+				os.writeUTF(gson.toJson(reply));
+				if (reply.binLength > 0)
+					try (InputStream fis = Files.newInputStream(queryFile)) {
+						IOUtils.copyLarge(fis, os, 0, reply.binLength);
+					}
 				break;
 
 			default:
@@ -116,6 +134,20 @@ public class ShareFile implements Callable<Void> {
 	private List<String> listFiles(Path start) throws IOException {
 		Stream<Path> stream = Files.walk(start);
 		return stream.map(start::relativize).map(Object::toString).collect(Collectors.toList());
+	}
+
+	private String fileMd5(Path file) throws IOException {
+		if (Files.isDirectory(file))
+			return "DIR";
+		try (InputStream fis = Files.newInputStream(file)) {
+			return DigestUtils.md5Hex(fis);
+		}
+	}
+
+	private long fileSize(Path file) throws IOException {
+		if (Files.isDirectory(file))
+			return 0;
+		return Files.size(file);
 	}
 
 	/** beacon respond to udp broadcast of same passwd */
