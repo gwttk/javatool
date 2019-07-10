@@ -271,12 +271,12 @@ public class ShareFile implements Callable<Void> {
 				s.setSoTimeout(2000);
 				try {
 					s.receive(p);
+					// maybe it's from self, try again
+					if (p.getAddress().equals(InetAddress.getLocalHost()))
+						s.receive(p);
 				} catch (SocketTimeoutException e) {
 					continue;
 				}
-				// maybe it's from self
-				if (p.getAddress().equals(InetAddress.getLocalHost()))
-					continue;
 				gson.fromJson(new String(p.getData(), p.getOffset(), p.getLength(), StandardCharsets.UTF_8),
 						BeaconPkt.class); // currently no use of reply pkt
 				return (InetSocketAddress) p.getSocketAddress();
