@@ -89,6 +89,7 @@ public class ShareFile implements Callable<Void> {
 
 	private void getFiles() throws IOException {
 		InetSocketAddress peerAddr = queryBeacon();
+		System.out.println("found file serve beacon: " + peerAddr);
 		Socket s = new Socket(peerAddr.getAddress(), peerAddr.getPort());
 		DataInputStream is = new DataInputStream(s.getInputStream());
 		DataOutputStream os = new DataOutputStream(s.getOutputStream());
