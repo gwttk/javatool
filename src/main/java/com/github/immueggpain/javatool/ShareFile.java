@@ -2,6 +2,7 @@ package com.github.immueggpain.javatool;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
@@ -11,7 +12,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public class ShareFile implements Callable<Void> {
 		public String password;
 	}
 
-	private static class WirePkt {
+	public static class WirePkt {
 		public long binLength = 0;
 		public WirePktType type;
 
@@ -79,7 +79,7 @@ public class ShareFile implements Callable<Void> {
 	}
 
 	public enum WirePktType {
-		LIST, FILEINFO, FILECONTENT
+		LIST, FILEINFO, FILECONTENT, DONE
 	}
 
 	private void getFiles() {
@@ -88,52 +88,66 @@ public class ShareFile implements Callable<Void> {
 
 	private void serveFiles() throws IOException {
 		ServerSocket ss = new ServerSocket(listenPort);
-		Socket s = ss.accept();
-		DataInputStream is = new DataInputStream(s.getInputStream());
-		DataOutputStream os = new DataOutputStream(s.getOutputStream());
-		while (true) {
-			String queryJson = is.readUTF();
-			WirePkt query = gson.fromJson(queryJson, WirePkt.class);
-			IOUtils.toByteArray(is, query.binLength); // currently no use of the bin data
-			WirePkt reply = new WirePkt();
-			Path queryFile;
-			switch (query.type) {
-			case LIST:
-				reply.type = WirePktType.LIST;
-				reply.fileList = listFiles(fromto.fromFile);
-				os.writeUTF(gson.toJson(reply));
-				break;
+		acceptLoop: while (true) {
+			Socket s = ss.accept();
+			DataInputStream is = new DataInputStream(s.getInputStream());
+			DataOutputStream os = new DataOutputStream(s.getOutputStream());
+			while (true) {
+				String queryJson;
+				try {
+					queryJson = is.readUTF();
+				} catch (EOFException e) {
+					break;
+				}
+				WirePkt query = gson.fromJson(queryJson, WirePkt.class);
+				IOUtils.toByteArray(is, query.binLength); // currently no use of the bin data
+				WirePkt reply = new WirePkt();
+				Path queryFile;
+				switch (query.type) {
+				case LIST:
+					reply.type = WirePktType.LIST;
+					reply.fileList = listFiles(fromto.fromFile);
+					os.writeUTF(gson.toJson(reply));
+					break;
 
-			case FILEINFO:
-				reply.type = WirePktType.FILEINFO;
-				queryFile = fromto.fromFile.resolve(query.queryPath);
-				reply.fileMd5 = fileMd5(queryFile);
-				reply.fileSize = fileSize(queryFile);
-				os.writeUTF(gson.toJson(reply));
-				break;
+				case FILEINFO:
+					reply.type = WirePktType.FILEINFO;
+					queryFile = fromto.fromFile.resolve(query.queryPath);
+					reply.fileMd5 = fileMd5(queryFile);
+					reply.fileSize = fileSize(queryFile);
+					os.writeUTF(gson.toJson(reply));
+					break;
 
-			case FILECONTENT:
-				reply.type = WirePktType.FILECONTENT;
-				queryFile = fromto.fromFile.resolve(query.queryPath);
-				reply.binLength = fileSize(queryFile);
-				os.writeUTF(gson.toJson(reply));
-				if (reply.binLength > 0)
-					try (InputStream fis = Files.newInputStream(queryFile)) {
-						IOUtils.copyLarge(fis, os, 0, reply.binLength);
-					}
-				break;
+				case FILECONTENT:
+					reply.type = WirePktType.FILECONTENT;
+					queryFile = fromto.fromFile.resolve(query.queryPath);
+					reply.binLength = fileSize(queryFile);
+					os.writeUTF(gson.toJson(reply));
+					if (reply.binLength > 0)
+						try (InputStream fis = Files.newInputStream(queryFile)) {
+							IOUtils.copyLarge(fis, os, 0, reply.binLength);
+						}
+					break;
 
-			default:
-				System.err.println("unknown type: " + query.type);
-				break;
+				case DONE:
+					break acceptLoop;
+
+				default:
+					System.err.println("unknown type: " + query.type);
+					break;
+				}
 			}
+			s.close();
 		}
+		ss.close();
 	}
 
 	/** all items are relative to start */
 	private List<String> listFiles(Path start) throws IOException {
 		Stream<Path> stream = Files.walk(start);
-		return stream.map(start::relativize).map(Object::toString).collect(Collectors.toList());
+		List<String> list = stream.map(start::relativize).map(Object::toString).collect(Collectors.toList());
+		stream.close();
+		return list;
 	}
 
 	private String fileMd5(Path file) throws IOException {
