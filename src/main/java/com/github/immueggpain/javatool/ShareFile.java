@@ -5,19 +5,25 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.google.gson.Gson;
@@ -49,7 +55,6 @@ public class ShareFile implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
-		new Thread(this::beacon, "beacon").start();
 		if (fromto.fromFile != null) {
 			System.out.println("sync from: " + fromto.fromFile);
 			serveFiles();
@@ -82,11 +87,69 @@ public class ShareFile implements Callable<Void> {
 		LIST, FILEINFO, FILECONTENT, DONE
 	}
 
-	private void getFiles() {
+	private void getFiles() throws IOException {
+		InetSocketAddress peerAddr = queryBeacon();
+		Socket s = new Socket(peerAddr.getAddress(), peerAddr.getPort());
+		DataInputStream is = new DataInputStream(s.getInputStream());
+		DataOutputStream os = new DataOutputStream(s.getOutputStream());
 
+		// query file list
+		WirePkt query = new WirePkt();
+		query.type = WirePktType.LIST;
+		os.writeUTF(gson.toJson(query));
+		WirePkt reply = gson.fromJson(is.readUTF(), WirePkt.class);
+
+		for (ListIterator<String> iterator = reply.fileList.listIterator(); iterator.hasNext();) {
+			String filePath = iterator.next();
+
+			Path localFile = fromto.toFile.resolve(filePath);
+			// query file info
+			WirePkt queryFI = new WirePkt();
+			queryFI.type = WirePktType.FILEINFO;
+			queryFI.queryPath = filePath;
+			os.writeUTF(gson.toJson(queryFI));
+			WirePkt replyFI = gson.fromJson(is.readUTF(), WirePkt.class);
+
+			// if file exists, either it's ok, otherwise delete it
+			if (Files.exists(localFile)) {
+				// check md5
+				String localMd5 = fileMd5(localFile);
+				if (localMd5.equals(replyFI.fileMd5))
+					continue;
+				else
+					FileUtils.deleteQuietly(localFile.toFile());
+			}
+
+			// now the file should not exist
+
+			if (replyFI.fileMd5.equals("DIR")) {
+				Files.createDirectory(fromto.toFile.resolve(filePath));
+			} else {
+				// query file info
+				WirePkt queryFC = new WirePkt();
+				queryFC.type = WirePktType.FILECONTENT;
+				queryFC.queryPath = filePath;
+				os.writeUTF(gson.toJson(queryFC));
+				WirePkt replyFC = gson.fromJson(is.readUTF(), WirePkt.class);
+				try (OutputStream fos = Files.newOutputStream(localFile)) {
+					IOUtils.copyLarge(is, fos, 0, replyFC.binLength);
+				}
+
+				// check md5
+				String localMd5 = fileMd5(localFile);
+				if (!localMd5.equals(replyFI.fileMd5)) {
+					// md5 not same!
+					// repeat this iteration of loop
+					iterator.previous();
+				}
+			}
+		}
+
+		s.close();
 	}
 
 	private void serveFiles() throws IOException {
+		new Thread(this::replyBeacon, "beacon").start();
 		ServerSocket ss = new ServerSocket(listenPort);
 		acceptLoop: while (true) {
 			Socket s = ss.accept();
@@ -165,7 +228,7 @@ public class ShareFile implements Callable<Void> {
 	}
 
 	/** beacon respond to udp broadcast of same passwd */
-	private void beacon() {
+	private void replyBeacon() {
 		try (DatagramSocket s = new DatagramSocket(listenPort)) {
 			s.setBroadcast(true);
 			byte[] buf = new byte[2000];
@@ -183,6 +246,37 @@ public class ShareFile implements Callable<Void> {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * beacon broadcast until find peer's addr
+	 */
+	private InetSocketAddress queryBeacon() throws IOException {
+		try (DatagramSocket s = new DatagramSocket(listenPort)) {
+			s.setBroadcast(true);
+			byte[] buf = new byte[2000];
+			DatagramPacket p = new DatagramPacket(buf, buf.length);
+			while (true) {
+				BeaconPkt beaconSig = new BeaconPkt();
+				String jsonStr = gson.toJson(beaconSig);
+				p.setData(jsonStr.getBytes(StandardCharsets.UTF_8));
+				p.setPort(listenPort);
+				p.setAddress(InetAddress.getByName("255.255.255.255"));
+				s.send(p);
+
+				// wait for reply, if timeout, loop to send beacon sig again
+				p.setData(buf);
+				s.setSoTimeout(2000);
+				try {
+					s.receive(p);
+				} catch (SocketTimeoutException e) {
+					continue;
+				}
+				gson.fromJson(new String(p.getData(), p.getOffset(), p.getLength(), StandardCharsets.UTF_8),
+						BeaconPkt.class); // currently no use of reply pkt
+				return (InetSocketAddress) p.getSocketAddress();
+			}
 		}
 	}
 
