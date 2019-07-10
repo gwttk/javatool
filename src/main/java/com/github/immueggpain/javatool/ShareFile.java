@@ -146,6 +146,10 @@ public class ShareFile implements Callable<Void> {
 			}
 		}
 
+		// done
+		WirePkt done = new WirePkt();
+		done.type = WirePktType.DONE;
+		os.writeUTF(gson.toJson(done));
 		s.close();
 	}
 
