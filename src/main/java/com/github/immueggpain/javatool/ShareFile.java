@@ -7,9 +7,16 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.io.IOUtils;
 
 import com.google.gson.Gson;
 
@@ -32,21 +39,21 @@ public class ShareFile implements Callable<Void> {
 
 	public static class FromTo {
 		@Option(names = { "-f", "--from" }, required = true, description = "sync from a file or dir")
-		public String fromPath;
+		public Path fromFile;
 
 		@Option(names = { "-t", "--to" }, required = true, description = "sync to a file or dir")
-		public String toPath;
+		public Path toFile;
 	}
 
 	@Override
 	public Void call() throws Exception {
 		new Thread(this::beacon, "beacon").start();
-		if (fromto.fromPath != null) {
-			System.out.println("sync from: " + fromto.fromPath);
+		if (fromto.fromFile != null) {
+			System.out.println("sync from: " + fromto.fromFile);
 			serveFiles();
 		}
-		if (fromto.toPath != null) {
-			System.out.println("sync to: " + fromto.toPath);
+		if (fromto.toFile != null) {
+			System.out.println("sync to: " + fromto.toFile);
 			getFiles();
 		}
 		return null;
@@ -58,6 +65,17 @@ public class ShareFile implements Callable<Void> {
 		public String password;
 	}
 
+	private static class WirePkt {
+		public long binLength;
+		public WirePktType type;
+
+		public List<String> fileList;
+	}
+
+	public enum WirePktType {
+		LIST, FILEINFO, FILECONTENT
+	}
+
 	private void getFiles() {
 
 	}
@@ -67,7 +85,37 @@ public class ShareFile implements Callable<Void> {
 		Socket s = ss.accept();
 		DataInputStream is = new DataInputStream(s.getInputStream());
 		DataOutputStream os = new DataOutputStream(s.getOutputStream());
+		while (true) {
+			String queryJson = is.readUTF();
+			WirePkt query = gson.fromJson(queryJson, WirePkt.class);
+			IOUtils.toByteArray(is, query.binLength); // currently no use of the bin data
+			switch (query.type) {
+			case LIST:
+				WirePkt reply = new WirePkt();
+				reply.type = WirePktType.LIST;
+				reply.fileList = listFiles(fromto.fromFile);
+				os.writeUTF(gson.toJson(reply));
+				break;
 
+			case FILEINFO:
+
+				break;
+
+			case FILECONTENT:
+
+				break;
+
+			default:
+				System.err.println("unknown type: " + query.type);
+				break;
+			}
+		}
+	}
+
+	/** all items are relative to start */
+	private List<String> listFiles(Path start) throws IOException {
+		Stream<Path> stream = Files.walk(start);
+		return stream.map(start::relativize).map(Object::toString).collect(Collectors.toList());
 	}
 
 	/** beacon respond to udp broadcast of same passwd */
