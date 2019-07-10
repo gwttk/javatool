@@ -10,7 +10,7 @@ import picocli.CommandLine.HelpCommand;
 		version = Launcher.VERSTR,
 		subcommands = { HelpCommand.class, Hash.class, RandomServer.class, ConnInfoServer.class, ConnInfoClient.class,
 				Chatter.class, UdpSend.class, UdpRecv.class, ShellExecute.class, SpeedTestClient.class,
-				SpeedTestServer.class, Base64.class, HttpPost.class, HttpSend.class })
+				SpeedTestServer.class, Base64.class, HttpPost.class, HttpSend.class, ShareFile.class })
 public class Launcher implements Callable<Void> {
 
 	public static final String VERSTR = "1.2.0";
