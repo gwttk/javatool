@@ -237,7 +237,9 @@ public class ShareFile implements Callable<Void> {
 			while (true) {
 				p.setData(buf);
 				s.receive(p);
+				System.out.println("recv beacon sig from: " + p.getSocketAddress());
 				String jsonStr = new String(p.getData(), p.getOffset(), p.getLength(), StandardCharsets.UTF_8);
+				System.out.println("beacon sig: " + jsonStr);
 				BeaconPkt beaconSig = gson.fromJson(jsonStr, BeaconPkt.class);
 				if (password.equals(beaconSig.password)) {
 					// passwd is same, reply beacon signal
@@ -260,6 +262,7 @@ public class ShareFile implements Callable<Void> {
 			DatagramPacket p = new DatagramPacket(buf, buf.length);
 			while (true) {
 				BeaconPkt beaconSig = new BeaconPkt();
+				beaconSig.password = password;
 				String jsonStr = gson.toJson(beaconSig);
 				p.setData(jsonStr.getBytes(StandardCharsets.UTF_8));
 				p.setPort(listenPort);
