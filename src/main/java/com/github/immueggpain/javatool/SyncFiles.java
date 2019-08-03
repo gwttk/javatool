@@ -34,7 +34,7 @@ import picocli.CommandLine.Option;
 
 @Command(description = "Send files between PCs and phones", name = "sync", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
-public class ShareFile implements Callable<Void> {
+public class SyncFiles implements Callable<Void> {
 
 	@Option(names = { "-p", "--port" }, required = false, description = "listening port")
 	public int listenPort = 23333;
