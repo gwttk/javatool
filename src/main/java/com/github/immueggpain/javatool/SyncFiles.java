@@ -126,7 +126,7 @@ public class SyncFiles implements Callable<Void> {
 			if (replyFI.fileMd5.equals("DIR")) {
 				Files.createDirectory(fromto.toFile.resolve(filePath));
 			} else {
-				// query file info
+				// query file content
 				WirePkt queryFC = new WirePkt();
 				queryFC.type = WirePktType.FILECONTENT;
 				queryFC.queryPath = filePath;
@@ -142,6 +142,9 @@ public class SyncFiles implements Callable<Void> {
 					// md5 not same!
 					// repeat this iteration of loop
 					iterator.previous();
+				} else {
+					// file is ok
+					System.out.println("downloaded " + filePath);
 				}
 			}
 		}
@@ -192,10 +195,12 @@ public class SyncFiles implements Callable<Void> {
 					queryFile = fromto.fromFile.resolve(query.queryPath);
 					reply.binLength = fileSize(queryFile);
 					os.writeUTF(gson.toJson(reply));
-					if (reply.binLength > 0)
+					if (reply.binLength > 0) {
 						try (InputStream fis = Files.newInputStream(queryFile)) {
 							IOUtils.copyLarge(fis, os, 0, reply.binLength);
 						}
+						System.out.println("uploaded " + query.queryPath);
+					}
 					break;
 
 				case DONE:
