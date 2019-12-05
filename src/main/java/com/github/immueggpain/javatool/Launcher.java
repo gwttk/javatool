@@ -16,7 +16,8 @@ public class Launcher implements Callable<Void> {
 	public static final String VERSTR = "1.2.0";
 
 	public static void main(String[] args) {
-		new CommandLine(new Launcher()).setCaseInsensitiveEnumValuesAllowed(true).execute(args);
+		int exitCode = new CommandLine(new Launcher()).setCaseInsensitiveEnumValuesAllowed(true).execute(args);
+		System.exit(exitCode);
 	}
 
 	@Override
