@@ -30,6 +30,8 @@ public class Hash implements Callable<Void> {
 					digestStr = DigestUtils.sha512Hex(is);
 				else if (algo.equals("md5"))
 					digestStr = DigestUtils.md5Hex(is);
+				else if (algo.equals("sha1"))
+					digestStr = DigestUtils.sha1Hex(is);
 				System.out.println(String.format("%s  %s", digestStr, file.toString()));
 			}
 		}
