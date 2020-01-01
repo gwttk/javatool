@@ -21,7 +21,7 @@ public class FtpServe implements Callable<Void> {
 		FtpServerFactory serverFactory = new FtpServerFactory();
 		ListenerFactory factory = new ListenerFactory();
 		// set the port of the listener
-		factory.setPort(2221);
+		factory.setPort(serverPort);
 		// replace the default listener
 		serverFactory.addListener("default", factory.createListener());
 		// start the server
