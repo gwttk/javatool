@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.listener.ListenerFactory;
+import org.apache.ftpserver.usermanager.impl.BaseUser;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -24,9 +25,15 @@ public class FtpServe implements Callable<Void> {
 		factory.setPort(serverPort);
 		// replace the default listener
 		serverFactory.addListener("default", factory.createListener());
+		// add anonymous user
+		BaseUser user = new BaseUser();
+		user.setName("anonymous");
+		user.setHomeDirectory("D:\\bddisk\\翼国度");
+		serverFactory.getUserManager().save(user);
 		// start the server
 		FtpServer server = serverFactory.createServer();
 		server.start();
+		Thread.sleep(Long.MAX_VALUE);
 		return null;
 	}
 
