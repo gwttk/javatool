@@ -16,6 +16,8 @@ public class FtpServe implements Callable<Void> {
 
 	@Option(names = { "-p", "--server-port" }, required = true, description = "server listening port")
 	public int serverPort;
+	@Option(names = { "-h", "--home-dir" }, required = true, description = "user home dir")
+	public String homeDir;
 
 	@Override
 	public Void call() throws Exception {
@@ -28,7 +30,7 @@ public class FtpServe implements Callable<Void> {
 		// add anonymous user
 		BaseUser user = new BaseUser();
 		user.setName("anonymous");
-		user.setHomeDirectory("D:\\bddisk\\翼国度");
+		user.setHomeDirectory(homeDir);
 		serverFactory.getUserManager().save(user);
 		// start the server
 		FtpServer server = serverFactory.createServer();
