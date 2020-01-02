@@ -16,7 +16,7 @@ public class FtpServe implements Callable<Void> {
 
 	@Option(names = { "-p", "--server-port" }, required = true, description = "server listening port")
 	public int serverPort;
-	@Option(names = { "-h", "--home-dir" }, required = true, description = "user home dir")
+	@Option(names = { "-d", "--home-dir" }, required = true, description = "user home dir")
 	public String homeDir;
 
 	@Override
