@@ -7,6 +7,7 @@ import java.net.Proxy;
 import java.net.Proxy.Type;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.math3.util.Precision;
@@ -71,6 +72,14 @@ public class SpeedTestClient implements Callable<Void> {
 			double speedRate = bytesReceived / ((double) duration / 1000) * 8;
 			System.out.println(String.format("received: %s, duration: %d s, speed: %s", format1024(bytesReceived, "B"),
 					duration / 1000, format1024((long) speedRate, "bps")));
+			try {
+				String local = s.getLocalSocketAddress().toString();
+				int rbufsz = s.getReceiveBufferSize();
+				int sbufsz = s.getSendBufferSize();
+				System.out.println(String.format("%s, rbufsz: %d, sbufsz: %d", local, rbufsz, sbufsz));
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
 			return null;
 		}
 	}
