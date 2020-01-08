@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -60,23 +61,26 @@ public class SpeedTestServer implements Callable<Void> {
 			while (true) {
 				p.setData(buf);
 				s.receive(p);
-				executor.execute(() -> handleConn(s, p));
+
+				SocketAddress socketAddress = p.getSocketAddress();
+				System.out.println(String.format("%s connected", socketAddress));
+				ByteBuffer wrap = ByteBuffer.wrap(p.getData(), p.getOffset(), p.getLength());
+				// client says how many random bytes will be sent
+				long bytesLeft = wrap.getLong();
+
+				executor.execute(() -> handleConn(s, bytesLeft, socketAddress));
 			}
 		}
 	}
 
-	private void handleConn(DatagramSocket s, DatagramPacket firstP) {
+	private void handleConn(DatagramSocket s, long bytesLeft, SocketAddress clientSockAddr) {
 		try {
-			System.out.println(String.format("%s connected", firstP.getSocketAddress()));
 			// this is random enough, using time
 			Random rand = new Random();
-			ByteBuffer wrap = ByteBuffer.wrap(firstP.getData(), firstP.getOffset(), firstP.getLength());
-			// client says how many random bytes will be sent
-			long bytesLeft = wrap.getLong();
 			System.out.println(String.format("request data size: %s", SpeedTestClient.format1024(bytesLeft, "B")));
 			byte[] randomBytes = new byte[buf_size];
 			DatagramPacket p = new DatagramPacket(randomBytes, randomBytes.length);
-			p.setSocketAddress(firstP.getSocketAddress());
+			p.setSocketAddress(clientSockAddr);
 			while (bytesLeft > 0) {
 				rand.nextBytes(randomBytes);
 				int len = (int) Math.min(bytesLeft, randomBytes.length);
@@ -84,9 +88,13 @@ public class SpeedTestServer implements Callable<Void> {
 				s.send(p);
 				bytesLeft -= len;
 			}
+			System.out.println("end of stream");
 			// end of stream
-			p.setData(randomBytes, 0, 0);
-			s.send(p);
+			for (int i = 0; i < 10; i++) {
+				p.setData(randomBytes, 0, 0);
+				s.send(p);
+				Thread.sleep(100);
+			}
 			try {
 				String local = s.getLocalSocketAddress().toString();
 				int rbufsz = s.getReceiveBufferSize();
