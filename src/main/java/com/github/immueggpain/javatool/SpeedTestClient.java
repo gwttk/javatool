@@ -23,8 +23,17 @@ public class SpeedTestClient implements Callable<Void> {
 	@Option(names = { "-r", "--server-host" }, required = true, description = "server host (ip or domain)")
 	public String server_host;
 
-	@Option(names = { "-s", "--data-size" }, required = true, description = "size of data to download in bytes")
+	@Option(names = { "-s", "--data-size" }, required = true, description = "size of data to download in MB")
 	public long data_size;
+
+	@Option(names = { "-z", "--buf-size" }, description = "buf size. default is ${DEFAULT-VALUE}")
+	public int buf_size = 1024 * 32;
+
+	@Option(names = { "--sndbuf" }, description = "socket send buf size.")
+	public int sndbuf_size = 0;
+
+	@Option(names = { "--rcvbuf" }, description = "socket recv buf size.")
+	public int rcvbuf_size = 0;
 
 	@Option(names = { "-x", "--proxy-port" }, required = false, description = "socks proxy's port")
 	public Integer proxy_port;
@@ -38,13 +47,18 @@ public class SpeedTestClient implements Callable<Void> {
 		} else
 			proxy = Proxy.NO_PROXY;
 		try (Socket s = new Socket(proxy)) {
+			if (sndbuf_size > 0)
+				s.setSendBufferSize(sndbuf_size);
+			if (rcvbuf_size > 0)
+				s.setReceiveBufferSize(rcvbuf_size);
+
 			s.connect(new InetSocketAddress(server_host, server_port));
 			System.out.println(String.format("connected to %s", s.getRemoteSocketAddress()));
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
 			InputStream is = s.getInputStream();
-			os.writeLong(data_size);
+			os.writeLong(data_size * 1024 * 1024);
 			long bytesReceived = 0;
-			byte[] buf = new byte[1024 * 32];
+			byte[] buf = new byte[buf_size];
 			long startTime = System.currentTimeMillis();
 			while (true) {
 				int n = is.read(buf);
@@ -54,14 +68,14 @@ public class SpeedTestClient implements Callable<Void> {
 			}
 			long endTime = System.currentTimeMillis();
 			long duration = endTime - startTime;
-			double speedRate = bytesReceived / ((double) duration / 1000) / 1024;
-			System.out.println(String.format("received: %s, duration: %d s, speed: %.2f KB/s",
-					formatBytes(bytesReceived), duration / 1000, speedRate));
+			double speedRate = bytesReceived / ((double) duration / 1000) * 8;
+			System.out.println(String.format("received: %s, duration: %d s, speed: %s", format1024(bytesReceived, "B"),
+					duration / 1000, format1024((long) speedRate, "bps")));
 			return null;
 		}
 	}
 
-	public static String formatBytes(long num) {
+	public static String format1024(long num, String unit) {
 		int decimals = 2;
 		long KB = 1024;
 		long MB = 1024 * KB;
@@ -71,19 +85,19 @@ public class SpeedTestClient implements Callable<Void> {
 		long EB = 1024 * PB;
 		double numd = num;
 		if (num < KB)
-			return num + " B";
+			return num + " " + unit;
 		if (num < MB)
-			return Precision.round(numd / KB, decimals) + " KB";
+			return Precision.round(numd / KB, decimals) + " K" + unit;
 		if (num < GB)
-			return Precision.round(numd / MB, decimals) + " MB";
+			return Precision.round(numd / MB, decimals) + " M" + unit;
 		if (num < TB)
-			return Precision.round(numd / GB, decimals) + " GB";
+			return Precision.round(numd / GB, decimals) + " G" + unit;
 		if (num < PB)
-			return Precision.round(numd / TB, decimals) + " TB";
+			return Precision.round(numd / TB, decimals) + " T" + unit;
 		if (num < EB)
-			return Precision.round(numd / PB, decimals) + " PB";
+			return Precision.round(numd / PB, decimals) + " P" + unit;
 		else
-			return Precision.round(numd / EB, decimals) + " EB";
+			return Precision.round(numd / EB, decimals) + " E" + unit;
 	}
 
 }
