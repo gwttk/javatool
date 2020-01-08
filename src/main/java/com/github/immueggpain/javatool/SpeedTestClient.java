@@ -39,6 +39,9 @@ public class SpeedTestClient implements Callable<Void> {
 	@Option(names = { "-x", "--proxy-port" }, required = false, description = "socks proxy's port")
 	public Integer proxy_port;
 
+	@Option(names = { "--proto" }, description = "protocol, udp or tcp. default is ${DEFAULT-VALUE}")
+	public String proto = "tcp";
+
 	@Override
 	public Void call() throws Exception {
 		Proxy proxy;
@@ -66,6 +69,10 @@ public class SpeedTestClient implements Callable<Void> {
 				if (n == -1)
 					break;
 				bytesReceived += n;
+				if (n > 65536)
+					System.out.println("n > 25536 !");
+				if (n == buf.length)
+					System.out.println("maximum buf!");
 			}
 			long endTime = System.currentTimeMillis();
 			long duration = endTime - startTime;

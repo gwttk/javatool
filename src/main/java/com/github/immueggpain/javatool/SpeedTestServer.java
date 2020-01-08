@@ -7,8 +7,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,9 +32,25 @@ public class SpeedTestServer implements Callable<Void> {
 	@Option(names = { "--rcvbuf" }, description = "socket recv buf size.")
 	public int rcvbuf_size = 0;
 
+	@Option(names = { "--proto" }, description = "protocol, udp or tcp. default is ${DEFAULT-VALUE}")
+	public String proto = "tcp";
+
 	@Override
 	public Void call() throws Exception {
 		ExecutorService executor = Executors.newCachedThreadPool();
+		if (proto.equals("tcp"))
+			startTcp(executor);
+		else if (proto.equals("udp"))
+			startUdp(executor);
+		return null;
+	}
+
+	private void startUdp(ExecutorService executor) {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void startTcp(Executor executor) throws Exception {
 		try (ServerSocket ss = new ServerSocket(server_port, 50, InetAddress.getByName("0.0.0.0"))) {
 			System.out.println("listening on port " + server_port);
 			if (rcvbuf_size > 0)
