@@ -2,9 +2,12 @@ package com.github.immueggpain.javatool;
 
 import java.io.DataOutputStream;
 import java.io.InputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Proxy.Type;
+import java.nio.ByteBuffer;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
@@ -44,6 +47,62 @@ public class SpeedTestClient implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
+		if (proto.equals("tcp"))
+			startTcp();
+		else if (proto.equals("udp"))
+			startUdp();
+		return null;
+
+	}
+
+	private void startUdp() throws Exception {
+		try (DatagramSocket s = new DatagramSocket()) {
+			if (sndbuf_size > 0)
+				s.setSendBufferSize(sndbuf_size);
+			if (rcvbuf_size > 0)
+				s.setReceiveBufferSize(rcvbuf_size);
+
+			byte[] buf = new byte[buf_size];
+			DatagramPacket p = new DatagramPacket(buf, buf.length);
+			p.setSocketAddress(new InetSocketAddress(server_host, server_port));
+			System.out.println(String.format("connected to %s", s.getRemoteSocketAddress()));
+			ByteBuffer wrap = ByteBuffer.wrap(p.getData(), p.getOffset(), p.getLength());
+			wrap.putLong(data_size * 1024 * 1024);
+			p.setData(wrap.array(), 0, wrap.position());
+			s.send(p);
+
+			long bytesReceived = 0;
+			long startTime = System.currentTimeMillis();
+
+			while (true) {
+				p.setData(buf);
+				s.receive(p);
+				int n = p.getLength();
+				if (n == 0)
+					break;
+				bytesReceived += n;
+				if (n > 65536)
+					System.out.println("n > 65536 !");
+				if (n == buf.length)
+					System.out.println("maximum buf!");
+			}
+			long endTime = System.currentTimeMillis();
+			long duration = endTime - startTime;
+			double speedRate = bytesReceived / ((double) duration / 1000) * 8;
+			System.out.println(String.format("received: %s, duration: %d s, speed: %s", format1024(bytesReceived, "B"),
+					duration / 1000, format1024((long) speedRate, "bps")));
+			try {
+				String local = s.getLocalSocketAddress().toString();
+				int rbufsz = s.getReceiveBufferSize();
+				int sbufsz = s.getSendBufferSize();
+				System.out.println(String.format("%s, rbufsz: %d, sbufsz: %d", local, rbufsz, sbufsz));
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void startTcp() throws Exception {
 		Proxy proxy;
 		if (proxy_port != null) {
 			SocketAddress proxyAddr = new InetSocketAddress("127.0.0.1", proxy_port);
@@ -70,7 +129,7 @@ public class SpeedTestClient implements Callable<Void> {
 					break;
 				bytesReceived += n;
 				if (n > 65536)
-					System.out.println("n > 25536 !");
+					System.out.println("n > 65536 !");
 				if (n == buf.length)
 					System.out.println("maximum buf!");
 			}
@@ -87,7 +146,6 @@ public class SpeedTestClient implements Callable<Void> {
 			} catch (SocketException e) {
 				e.printStackTrace();
 			}
-			return null;
 		}
 	}
 

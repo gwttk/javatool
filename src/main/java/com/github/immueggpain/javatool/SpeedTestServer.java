@@ -3,11 +3,13 @@ package com.github.immueggpain.javatool;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -45,9 +47,57 @@ public class SpeedTestServer implements Callable<Void> {
 		return null;
 	}
 
-	private void startUdp(ExecutorService executor) {
-		// TODO Auto-generated method stub
+	private void startUdp(ExecutorService executor) throws Exception {
+		try (DatagramSocket s = new DatagramSocket(server_port, InetAddress.getByName("0.0.0.0"))) {
+			System.out.println("listening on udp port " + server_port);
+			System.out.println("protocol is 'speed test v1'");
+			if (sndbuf_size > 0)
+				s.setSendBufferSize(sndbuf_size);
+			if (rcvbuf_size > 0)
+				s.setReceiveBufferSize(rcvbuf_size);
+			byte[] buf = new byte[buf_size];
+			DatagramPacket p = new DatagramPacket(buf, buf.length);
+			while (true) {
+				p.setData(buf);
+				s.receive(p);
+				executor.execute(() -> handleConn(s, p));
+			}
+		}
+	}
 
+	private void handleConn(DatagramSocket s, DatagramPacket firstP) {
+		try {
+			System.out.println(String.format("%s connected", firstP.getSocketAddress()));
+			// this is random enough, using time
+			Random rand = new Random();
+			ByteBuffer wrap = ByteBuffer.wrap(firstP.getData(), firstP.getOffset(), firstP.getLength());
+			// client says how many random bytes will be sent
+			long bytesLeft = wrap.getLong();
+			System.out.println(String.format("request data size: %s", SpeedTestClient.format1024(bytesLeft, "B")));
+			byte[] randomBytes = new byte[buf_size];
+			DatagramPacket p = new DatagramPacket(randomBytes, randomBytes.length);
+			p.setSocketAddress(firstP.getSocketAddress());
+			while (bytesLeft > 0) {
+				rand.nextBytes(randomBytes);
+				int len = (int) Math.min(bytesLeft, randomBytes.length);
+				p.setData(randomBytes, 0, len);
+				s.send(p);
+				bytesLeft -= len;
+			}
+			// end of stream
+			p.setData(randomBytes, 0, 0);
+			s.send(p);
+			try {
+				String local = s.getLocalSocketAddress().toString();
+				int rbufsz = s.getReceiveBufferSize();
+				int sbufsz = s.getSendBufferSize();
+				System.out.println(String.format("%s, rbufsz: %d, sbufsz: %d", local, rbufsz, sbufsz));
+			} catch (SocketException e) {
+				e.printStackTrace();
+			}
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void startTcp(Executor executor) throws Exception {
@@ -68,8 +118,8 @@ public class SpeedTestServer implements Callable<Void> {
 	private void handleConn(Socket s) {
 		try {
 			System.out.println(String.format("%s connected", s.getRemoteSocketAddress()));
-			Random rand = new Random();
 			// this is random enough, using time
+			Random rand = new Random();
 			OutputStream os = s.getOutputStream();
 			DataInputStream is = new DataInputStream(s.getInputStream());
 			// client says how many random bytes will be sent
