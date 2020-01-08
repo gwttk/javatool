@@ -1,12 +1,12 @@
 package com.github.immueggpain.javatool;
 
+import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.listener.ListenerFactory;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
-
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -21,6 +21,12 @@ public class FtpServe implements Callable<Void> {
 
 	@Override
 	public Void call() throws Exception {
+		// the FtpServer uses slf4j, which is an interface
+		// i use slf4j-simple as backend
+		// slf4j-simple needs to be set loglevel like this:
+		Properties props = System.getProperties();
+		props.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
+
 		FtpServerFactory serverFactory = new FtpServerFactory();
 		ListenerFactory factory = new ListenerFactory();
 		// set the port of the listener
@@ -35,6 +41,7 @@ public class FtpServe implements Callable<Void> {
 		// start the server
 		FtpServer server = serverFactory.createServer();
 		server.start();
+		// don't end main thread
 		Thread.sleep(Long.MAX_VALUE);
 		return null;
 	}
