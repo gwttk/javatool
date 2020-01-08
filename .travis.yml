@@ -1,12 +1,13 @@
 language: java
 before_install:
-    - sudo apt-get install -y python3-pip
+    - pyenv shell 3.7
+    - pip3 install --upgrade pip
 before_deploy:
     # create some env vars
     - PROJ_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
     - ARTIFACTID=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
     # install PyGithub
-    - sudo pip3 install PyGithub
+    - pip3 install PyGithub
     # download githubrelease.py
     - wget https://raw.githubusercontent.com/Immueggpain/citools/master/githubrelease.py
     - pwd
