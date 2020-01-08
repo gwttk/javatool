@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -62,6 +63,14 @@ public class SpeedTestServer implements Callable<Void> {
 				int len = (int) Math.min(bytesLeft, randomBytes.length);
 				os.write(randomBytes, 0, len);
 				bytesLeft -= len;
+			}
+			try {
+				String local = s.getLocalSocketAddress().toString();
+				int rbufsz = s.getReceiveBufferSize();
+				int sbufsz = s.getSendBufferSize();
+				System.out.println(String.format("%s, rbufsz: %d, sbufsz: %d", local, rbufsz, sbufsz));
+			} catch (SocketException e) {
+				e.printStackTrace();
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();
