@@ -65,7 +65,7 @@ public class SpeedTestClient implements Callable<Void> {
 			byte[] buf = new byte[buf_size];
 			DatagramPacket p = new DatagramPacket(buf, buf.length);
 			p.setSocketAddress(new InetSocketAddress(server_host, server_port));
-			System.out.println(String.format("connected to %s", s.getRemoteSocketAddress()));
+			System.out.println(String.format("connected to %s", p.getSocketAddress()));
 			ByteBuffer wrap = ByteBuffer.wrap(p.getData(), p.getOffset(), p.getLength());
 			wrap.putLong(data_size * 1024 * 1024);
 			p.setData(wrap.array(), 0, wrap.position());
