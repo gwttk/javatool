@@ -13,7 +13,7 @@ import picocli.CommandLine.HelpCommand;
 				SpeedTestServer.class, Base64.class, HttpPost.class, HttpSend.class, SyncFiles.class, FtpServe.class })
 public class Launcher implements Callable<Void> {
 
-	public static final String VERSTR = "1.2.2";
+	public static final String VERSTR = "1.2.3";
 
 	public static void main(String[] args) {
 		int exitCode = new CommandLine(new Launcher()).setCaseInsensitiveEnumValuesAllowed(true).execute(args);
