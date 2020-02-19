@@ -11,11 +11,10 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(description = "Calculate hash of file", name = "hash", mixinStandardHelpOptions = true,
-		version = Launcher.VERSTR)
+@Command(description = "Calculate hash of file", name = "hash", mixinStandardHelpOptions = true, version = Launcher.VERSTR)
 public class Hash implements Callable<Void> {
 
-	@Option(names = { "-a", "--algo" }, required = true, description = "hash algorithm")
+	@Option(names = { "-a", "--algo" }, required = true, description = "hash algorithm: sha512, md5, sha1")
 	public String algo;
 
 	@Parameters
@@ -32,7 +31,7 @@ public class Hash implements Callable<Void> {
 					digestStr = DigestUtils.md5Hex(is);
 				else if (algo.equals("sha1"))
 					digestStr = DigestUtils.sha1Hex(is);
-				System.out.println(String.format("%s  %s", digestStr, file.toString()));
+				System.out.println(String.format("%s  %s", digestStr, algo));
 			}
 		}
 		return null;
