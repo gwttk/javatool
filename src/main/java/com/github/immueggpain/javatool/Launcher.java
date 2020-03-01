@@ -16,7 +16,8 @@ public class Launcher implements Callable<Void> {
 	public static final String VERSTR = "1.2.3";
 
 	public static void main(String[] args) {
-		int exitCode = new CommandLine(new Launcher()).setCaseInsensitiveEnumValuesAllowed(true).execute(args);
+		int exitCode = new CommandLine(new Launcher()).setCaseInsensitiveEnumValuesAllowed(true)
+				.setUsageHelpLongOptionsMaxWidth(40).setUsageHelpAutoWidth(true).execute(args);
 		System.exit(exitCode);
 	}
 
