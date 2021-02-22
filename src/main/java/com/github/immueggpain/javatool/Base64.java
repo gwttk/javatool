@@ -1,5 +1,6 @@
 package com.github.immueggpain.javatool;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -10,11 +11,14 @@ import picocli.CommandLine.Option;
 		version = Launcher.VERSTR)
 public class Base64 implements Callable<Void> {
 
-	@Option(names = { "-i", "--input" }, required = true, description = "input file")
+	@Option(names = { "-i", "--input" }, description = "input file")
 	public Path inputFile;
 
-	@Option(names = { "-o", "--output" }, required = true, description = "output file")
+	@Option(names = { "-o", "--output" }, description = "output file")
 	public Path outputFile;
+
+	@Option(names = { "-s", "--string" }, split = ",", arity = "1..*", description = "input string(s)")
+	public String[] inputStrings;
 
 	@Option(names = { "-m", "--mode" }, required = true, description = "Valid values: ${COMPLETION-CANDIDATES}")
 	public Mode mode;
@@ -26,13 +30,29 @@ public class Base64 implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		if (mode == Mode.ENCODE) {
-			byte[] in = Files.readAllBytes(inputFile);
-			byte[] out = org.apache.commons.codec.binary.Base64.encodeBase64(in);
-			Files.write(outputFile, out);
+			if (inputFile != null) {
+				byte[] in = Files.readAllBytes(inputFile);
+				byte[] out = org.apache.commons.codec.binary.Base64.encodeBase64(in);
+				Files.write(outputFile, out);
+			}
+			if (inputStrings != null) {
+				for (String str : inputStrings) {
+					String outstr = org.apache.commons.codec.binary.Base64.encodeBase64String(str.getBytes("UTF-8"));
+					System.out.println(String.format("%s --> %s", str, outstr));
+				}
+			}
 		} else if (mode == Mode.DECODE) {
-			byte[] in = Files.readAllBytes(inputFile);
-			byte[] out = org.apache.commons.codec.binary.Base64.decodeBase64(in);
-			Files.write(outputFile, out);
+			if (inputFile != null) {
+				byte[] in = Files.readAllBytes(inputFile);
+				byte[] out = org.apache.commons.codec.binary.Base64.decodeBase64(in);
+				Files.write(outputFile, out);
+			}
+			if (inputStrings != null) {
+				for (String str : inputStrings) {
+					byte[] outstr = org.apache.commons.codec.binary.Base64.decodeBase64(str);
+					System.out.println(String.format("%s --> %s", str, new String(outstr, StandardCharsets.UTF_8)));
+				}
+			}
 		} else {
 			throw new Exception("impossible");
 		}
