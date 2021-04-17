@@ -7,7 +7,7 @@ import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 
-public class mtu_detect {
+public class MtuDetect {
 
 	public static void main(String[] args) {
 		try {
