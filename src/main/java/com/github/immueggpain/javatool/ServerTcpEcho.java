@@ -15,7 +15,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
-@Command(description = "Server which produces random data", name = "svrtcpecho", mixinStandardHelpOptions = true,
+@Command(description = "TCP echo server", name = "svrtcpecho", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
 public class ServerTcpEcho implements Callable<Void> {
 
