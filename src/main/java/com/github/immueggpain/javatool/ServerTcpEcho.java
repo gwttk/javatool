@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.SecureRandom;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,7 +15,7 @@ import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
-@Command(description = "Server which produces random data", name = "randsvr", mixinStandardHelpOptions = true,
+@Command(description = "Server which produces random data", name = "svrtcpecho", mixinStandardHelpOptions = true,
 		version = Launcher.VERSTR)
 public class ServerTcpEcho implements Callable<Void> {
 
@@ -40,6 +39,7 @@ public class ServerTcpEcho implements Callable<Void> {
 
 	private void handleConn(Socket s) {
 		try {
+			s.setTcpNoDelay(true);
 			OutputStream os = s.getOutputStream();
 			InputStream is = s.getInputStream();
 			byte[] buf = new byte[1024 * 32];
