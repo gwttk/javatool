@@ -48,6 +48,7 @@ public class FtpServe implements Callable<Void> {
 		// start the server
 		FtpServer server = serverFactory.createServer();
 		server.start();
+		System.out.println(String.format("ftp server started on port %d", serverPort));
 		// don't end main thread
 		Thread.sleep(Long.MAX_VALUE);
 		return null;
