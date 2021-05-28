@@ -25,7 +25,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 	public Void call() throws Exception {
 		try (Socket s = new Socket(Proxy.NO_PROXY)) {
 			s.setTcpNoDelay(true);
-			s.connect(InetSocketAddress.createUnresolved(serverAddr, serverPort));
+			s.connect(new InetSocketAddress(serverAddr, serverPort));
 			DataInputStream is = new DataInputStream(s.getInputStream());
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
 
