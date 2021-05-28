@@ -21,6 +21,7 @@ public class ServerEcho implements Callable<Void> {
 		try (ServerSocket ss = new ServerSocket(serverPort)) {
 			while (true) {
 				Socket s = ss.accept();
+				System.out.println("handle a new connection!");
 				handle(s);
 			}
 		}
