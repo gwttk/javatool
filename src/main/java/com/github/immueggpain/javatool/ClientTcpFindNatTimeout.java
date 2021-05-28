@@ -24,6 +24,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		try (Socket s = new Socket(Proxy.NO_PROXY)) {
+			s.setSoTimeout(5000);
 			s.setTcpNoDelay(true);
 			s.connect(new InetSocketAddress(serverAddr, serverPort));
 			DataInputStream is = new DataInputStream(s.getInputStream());
@@ -38,7 +39,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 				long vIn = is.readLong();
 				if (vIn == v) {
 					System.out.println(String.format("%d seconds is ok!", seconds));
-					seconds = seconds + 60;
+					seconds = seconds + 10;
 					Thread.sleep(seconds * 1000);
 				} else {
 					System.out.println("data error");
