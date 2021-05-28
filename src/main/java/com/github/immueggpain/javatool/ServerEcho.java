@@ -22,7 +22,7 @@ public class ServerEcho implements Callable<Void> {
 			while (true) {
 				Socket s = ss.accept();
 				System.out.println("handle a new connection!");
-				handle(s);
+				new Thread(() -> handle(s)).start();
 			}
 		}
 	}
