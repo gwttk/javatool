@@ -31,7 +31,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
 
 			Random r = new Random();
-			long seconds = 300;
+			long seconds = 340;
 
 			while (true) {
 				long v = r.nextLong();
@@ -39,7 +39,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 				long vIn = is.readLong();
 				if (vIn == v) {
 					System.out.println(String.format("%d seconds is ok!", seconds));
-					seconds = seconds + 10;
+					seconds = seconds + 5;
 					Thread.sleep(seconds * 1000);
 				} else {
 					System.out.println("data error");
