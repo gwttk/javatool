@@ -31,7 +31,7 @@ public class ClientTcpFindNatTimeout implements Callable<Void> {
 			DataOutputStream os = new DataOutputStream(s.getOutputStream());
 
 			Random r = new Random();
-			long seconds = 340;
+			long seconds = 350;
 
 			while (true) {
 				long v = r.nextLong();
