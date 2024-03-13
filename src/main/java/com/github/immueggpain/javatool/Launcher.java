@@ -2,6 +2,7 @@ package com.github.immueggpain.javatool;
 
 import java.util.concurrent.Callable;
 
+import com.github.immueggpain.javatool.net.RecvThenEcho;
 import com.github.immueggpain.javatool.net.Send1Recv1;
 
 import picocli.CommandLine;
@@ -13,7 +14,7 @@ import picocli.CommandLine.HelpCommand;
 		subcommands = { HelpCommand.class, Hash.class, RandomServer.class, ConnInfoServer.class, ConnInfoClient.class,
 				Chatter.class, ShellExecute.class, SpeedTestClient.class, SpeedTestServer.class, Base64.class,
 				HttpPost.class, HttpSend.class, SyncFiles.class, FtpServe.class, MouseMove.class,
-				ClientTcpFindNatTimeout.class, Send1Recv1.class })
+				ClientTcpFindNatTimeout.class, Send1Recv1.class, RecvThenEcho.class })
 public class Launcher implements Callable<Void> {
 
 	public static final String VERSTR = "1.4.0";
